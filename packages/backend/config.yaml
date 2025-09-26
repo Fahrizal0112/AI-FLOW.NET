@@ -1,0 +1,25 @@
+core:
+  openai_api_key:
+    tag: "core"
+    description: "API key for accessing OpenAI services."
+  
+  stabilityai_api_key:
+    tag: "core"
+    description: "API key for accessing Stability AI services."
+  
+  replicate_api_key:
+    tag: "core"
+    description: "API key for accessing Replicate services."
+
+extension:
+  anthropic_api_key:
+    tag: "core"
+    description: "API key for accessing Anthropic services."
+  
+  deepseek_api_key:
+    tag: "core"
+    description: "API key for accessing DeepSeek services."
+
+  openrouter_api_key:
+    tag: "core"
+    description: "API key for accessing OpenRouter services."
