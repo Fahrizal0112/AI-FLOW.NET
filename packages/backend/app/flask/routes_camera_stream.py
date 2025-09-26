@@ -5,6 +5,7 @@ import sys
 import threading
 import base64
 from flask import Blueprint, Response, current_app
+from flask_cors import cross_origin
 
 bp_camera_stream = Blueprint("camera_stream", __name__)
 
@@ -121,4 +122,10 @@ def stream_mjpeg(index: int):
                    b"Content-Type: image/jpeg\r\n"
                    b"Content-Length: " + str(len(jpg)).encode() + b"\r\n\r\n" +
                    jpg + b"\r\n")
-    return Response(gen(), mimetype=f"multipart/x-mixed-replace; boundary={boundary}")
+    
+    response = Response(gen(), mimetype=f"multipart/x-mixed-replace; boundary={boundary}")
+    response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    response.headers['Pragma'] = 'no-cache'
+    response.headers['Expires'] = '0'
+    # Remove manual CORS headers since they're handled by Flask-CORS globally
+    return response

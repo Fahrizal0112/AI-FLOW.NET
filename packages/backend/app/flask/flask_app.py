@@ -15,8 +15,11 @@ def create_app():
         logging.warning("Flask secret key not set")
         app.config['SECRET_KEY'] = "default_secret"
         
-    CORS(app)
-
+    # Configure CORS properly to avoid conflicts
+    CORS(app, 
+         origins=["http://localhost:3000", "http://localhost:5173", "http://localhost:8080"],
+         allow_headers=["Content-Type", "Authorization"],
+         methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"])
 
     if os.getenv("USE_HTTPS", "false").lower() == "true":
 
