@@ -117,7 +117,7 @@ export const SocketProvider = ({ children }: SocketProviderProps) => {
     const activeSocket = getActiveSocket();
 
     if (activeSocket) {
-      activeSocket.emit(event.name, {
+      activeSocket.emit(event.name as FlowEventOut, {
         ...event.data,
         parameters: getConfigParametersFlat(),
       });
