@@ -27,8 +27,13 @@ export default function OutputDisplay({
 }: OutputDisplayProps) {
   const { t } = useTranslation("flow");
 
-  const [indexDisplayed, setIndexDisplayed] = useState(0);
+  // Add more detailed debugging
+  console.log("OutputDisplay data:", data);
+  console.log("OutputDisplay data.id:", data.id);
+  console.log("OutputDisplay data keys:", Object.keys(data));
 
+  const [indexDisplayed, setIndexDisplayed] = useState(0);
+  
   const nbOutput =
     data.outputData != null && typeof data.outputData !== "string"
       ? data.outputData.length
@@ -42,7 +47,10 @@ export default function OutputDisplay({
       }
     }
 
-    if (!data.outputData) return <></>;
+    if (!data.outputData) {
+      console.log("No outputData available");
+      return <></>;
+    }
 
     let output = data.outputData;
 
@@ -50,10 +58,15 @@ export default function OutputDisplay({
       output = output[indexDisplayed];
     }
 
-    switch (getOutputType()) {
+    const outputType = getOutputType();
+    console.log("Final outputType:", outputType);
+    console.log("Final output:", output);
+
+    switch (outputType) {
       case "imageUrl":
         return <ImageUrlOutput url={output} name={data.name} />;
       case "imageBase64":
+        console.log("Rendering ImageBase64Output");
         return (
           <ImageBase64Output
             data={output}
@@ -64,7 +77,21 @@ export default function OutputDisplay({
       case "videoUrl":
         return <VideoUrlOutput url={output} name={data.name} />;
       case "videoStream":
-        return <VideoStreamOutput streamUrl={output} name={data.name} lastRun={data.lastRun} />;
+        console.log("Rendering VideoStreamOutput with nodeId:", data.id || data.name);
+        return <VideoStreamOutput 
+          streamUrl={output} 
+          name={data.name} 
+          lastRun={data.lastRun} 
+          nodeId={data.id || data.name} 
+        />;
+      case "imageBase64":
+        return (
+          <ImageBase64Output
+            data={output}
+            name={data.name}
+            lastRun={data.lastRun}
+          />
+        );
       case "audioUrl":
         return <AudioUrlOutput url={output} name={data.name} />;
       case "3dUrl":
@@ -92,11 +119,17 @@ export default function OutputDisplay({
   };
 
   function getOutputType(): OutputType {
+    console.log("getOutputType - data.config?.outputType:", data.config?.outputType);
+    console.log("getOutputType - data.output_type:", data.output_type);
+    console.log("getOutputType - data.outputData:", data.outputData);
+    
     if (data.config?.outputType) {
+      console.log("Using config outputType:", data.config.outputType);
       return data.config.outputType;
     }
 
     if (!data.outputData) {
+      console.log("No outputData, returning markdown");
       return "markdown";
     }
 
@@ -110,6 +143,7 @@ export default function OutputDisplay({
     }
 
     const outputType = getOutputExtension(output);
+    console.log("Detected outputType from extension:", outputType);
 
     return outputType;
   }

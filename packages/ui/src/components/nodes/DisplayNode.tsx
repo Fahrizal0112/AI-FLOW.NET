@@ -116,6 +116,13 @@ const DisplayNode: React.FC<DisplayNodeProps> = React.memo(
       });
     };
 
+    // Add debugging and ensure we have a valid ID
+    useEffect(() => {
+      console.log("DisplayNode - React Flow id:", id);
+      console.log("DisplayNode - nodeId state:", nodeId);
+      console.log("DisplayNode - data.name:", data.name);
+    }, [id, nodeId, data.name]);
+
     return (
       <div
         key={id}
@@ -184,7 +191,13 @@ const DisplayNode: React.FC<DisplayNodeProps> = React.memo(
 
         <div className="nodrag nowheel flex h-full w-full overflow-auto">
           {data.outputData != null ? (
-            <OutputDisplay key={reloadDisplay} data={data} />
+            <OutputDisplay 
+              key={reloadDisplay} 
+              data={{
+                ...data, 
+                id: id || nodeId || data.name || 'unknown-node'
+              }} 
+            />
           ) : (
             <div className="h-10" />
           )}

@@ -1,20 +1,26 @@
-import React, { memo, useState, useEffect, useCallback } from "react";
+import React, { memo, useState, useEffect, useCallback, useContext } from "react";
 import styled from "styled-components";
+import { FaStop } from "react-icons/fa";
+import { SocketContext } from "../../../providers/SocketProvider";
 
 interface CameraStreamOutputProps {
   imageData: string;
   name: string;
   lastRun?: string;
+  nodeId?: string;
 }
 
 const CameraStreamOutput: React.FC<CameraStreamOutputProps> = ({
   imageData,
   name,
   lastRun,
+  nodeId,
 }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
   const [currentImage, setCurrentImage] = useState<string>(imageData);
+  const [isStopping, setIsStopping] = useState(false);
+  const { emitEvent } = useContext(SocketContext);
 
   // Auto-refresh when imageData changes
   useEffect(() => {
@@ -22,6 +28,7 @@ const CameraStreamOutput: React.FC<CameraStreamOutputProps> = ({
       setCurrentImage(imageData);
       setHasError(false);
       setIsLoading(false);
+      setIsStopping(false);
     } else if (imageData && !imageData.startsWith('data:image/')) {
       // Handle non-base64 URLs (fallback)
       setCurrentImage(imageData);
@@ -39,6 +46,31 @@ const CameraStreamOutput: React.FC<CameraStreamOutputProps> = ({
     setIsLoading(false);
     setHasError(true);
   }, []);
+
+  const handleStopStream = () => {
+    if (!nodeId) {
+      console.warn("No nodeId provided, cannot stop stream");
+      return;
+    }
+
+    setIsStopping(true);
+    
+    const event = {
+      name: "cancel_node" as const,
+      data: {
+        jsonFile: "",
+        nodeName: nodeId,
+      },
+    };
+
+    const success = emitEvent(event);
+    if (success) {
+      console.log(`Stop request sent for node: ${nodeId}`);
+    } else {
+      console.error("Failed to send stop request");
+      setIsStopping(false);
+    }
+  };
 
   if (!currentImage) {
     return (
@@ -83,8 +115,19 @@ const CameraStreamOutput: React.FC<CameraStreamOutputProps> = ({
         }}
       />
       
+      {nodeId && (
+        <StopButton
+          onClick={handleStopStream}
+          disabled={isStopping}
+          title="Stop camera stream"
+        >
+          <FaStop />
+        </StopButton>
+      )}
+      
       <StreamLabel>
         {name} {lastRun && `(${new Date(lastRun).toLocaleTimeString()})`}
+        {isStopping && " (Stopping...)"}
       </StreamLabel>
     </StreamContainer>
   );
@@ -164,6 +207,39 @@ const StreamLabel = styled.div`
   font-size: 12px;
   font-weight: 500;
   z-index: 2;
+`;
+
+const StopButton = styled.button`
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background-color: #ff4444;
+  color: white;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  z-index: 3;
+  
+  &:hover:not(:disabled) {
+    background-color: #cc0000;
+    transform: scale(1.1);
+  }
+  
+  &:disabled {
+    background-color: #666;
+    cursor: not-allowed;
+    opacity: 0.6;
+  }
+  
+  svg {
+    font-size: 12px;
+  }
 `;
 
 export default memo(CameraStreamOutput);

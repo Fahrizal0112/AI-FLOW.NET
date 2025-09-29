@@ -25,7 +25,7 @@ export interface FlowEventData {
 }
 
 export interface FlowEvent {
-  name: FlowEventOut;
+  name: FlowEventOut | "cancel_node";
   data: FlowEventData;
 }
 

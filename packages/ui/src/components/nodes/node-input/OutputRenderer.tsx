@@ -53,7 +53,7 @@ export default function OutputRenderer({
       case "videoUrl":
         return <VideoUrlOutput url={output} name={data.name} />;
       case "videoStream":
-        return <VideoStreamOutput streamUrl={output} name={data.name} lastRun={data.lastRun} />;
+        return <VideoStreamOutput streamUrl={output} name={data.name} lastRun={data.lastRun} nodeId={data.id} />;
       case "audioUrl":
         return <AudioUrlOutput url={output} name={data.name} />;
       case "3dUrl":

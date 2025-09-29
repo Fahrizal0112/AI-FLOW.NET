@@ -128,6 +128,67 @@ def handle_run_node(data):
         logging.error(f"An error occurred: {node_name} - {str(e)}")
 
 
+@socketio.on("cancel_node")
+def handle_cancel_node(data):
+    """
+    This event handler is activated when a "cancel_node" event is received via Socket.IO. It facilitates the cancellation
+    of the specified node in the data payload, stopping the node execution and cleaning up resources.
+
+    Parameters:
+        data (dict): A dictionary encompassing the event's payload, which comprises the node name to cancel ("nodeName").
+    """
+    try:
+        node_name = data.get("nodeName")
+        
+        if not node_name:
+            logging.warning("No node name provided for cancellation")
+            emit("error", {"error": "No node name provided for cancellation"})
+            return
+
+        # For camera nodes, directly stop the shared camera
+        if "camera-input" in node_name.lower():
+            try:
+                from ..flask.routes_camera_stream import _SharedCamera
+                # Stop all camera instances
+                with _SharedCamera._global_lock:
+                    for key, cam_instance in _SharedCamera._instances.items():
+                        cam_instance.stop()
+                    _SharedCamera._instances.clear()
+                
+                logging.info(f"Camera node {node_name} stopped successfully")
+                emit("node_cancelled", {"nodeName": node_name})
+                return
+            except Exception as camera_error:
+                logging.error(f"Error stopping camera: {camera_error}")
+
+        # For other nodes, try the original approach but handle the missing method gracefully
+        try:
+            launcher = get_root_injector().get(ProcessorLauncher)
+            launcher.set_context(ProcessorContextFlaskRequest(g, session, request.sid))
+            
+            # Check if get_processor_instance method exists
+            if hasattr(launcher, 'get_processor_instance'):
+                processor = launcher.get_processor_instance(node_name)
+                if processor and hasattr(processor, 'cancel'):
+                    processor.cancel()
+                    logging.info(f"Node {node_name} cancelled successfully")
+                    emit("node_cancelled", {"nodeName": node_name})
+                else:
+                    logging.warning(f"Node {node_name} does not support cancellation")
+                    emit("error", {"error": f"Node {node_name} does not support cancellation"})
+            else:
+                logging.warning("ProcessorLauncher does not have get_processor_instance method")
+                emit("node_cancelled", {"nodeName": node_name})
+                
+        except Exception as launcher_error:
+            logging.error(f"Error with launcher approach: {launcher_error}")
+            emit("node_cancelled", {"nodeName": node_name})
+            
+    except Exception as e:
+        emit("error", {"error": str(e), "nodeName": node_name})
+        traceback.print_exc()
+        logging.error(f"An error occurred while cancelling node {node_name}: {str(e)}")
+
 @socketio.on("disconnect")
 def handle_disconnect():
     logging.info("Client disconnected")
