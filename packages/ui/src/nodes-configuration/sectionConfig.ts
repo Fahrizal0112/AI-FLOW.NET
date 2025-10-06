@@ -333,9 +333,20 @@ export function getNonGenericNodeConfig() {
 function getAllDndNode(): DnDNode[] {
   const nodesDisabled = getNodesHiddenList();
   const nonGenericNodeConfig = getNonGenericNodeConfig();
-  return transformNodeConfigsToDndNode(nodeConfigs)
+  
+  console.log("🔍 getAllDndNode - nodeConfigs keys:", Object.keys(nodeConfigs));
+  console.log("🔍 getAllDndNode - nodesDisabled:", nodesDisabled);
+  
+  const transformedNodes = transformNodeConfigsToDndNode(nodeConfigs);
+  console.log("🔍 Transformed nodes:", transformedNodes.map(n => `${n.label} (${n.type})`));
+  
+  const allNodes = transformedNodes
     .concat(nonGenericNodeConfig)
     .filter((node) => !nodesDisabled.includes(node.type));
+    
+  console.log("🔍 Final nodes after filter:", allNodes.map(n => `${n.label} (${n.type})`));
+  
+  return allNodes;
 }
 
 export const populateNodeSections = () => {

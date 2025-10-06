@@ -76,9 +76,8 @@ class YOLODetectionProcessor(ContextAwareExtensionProcessor):
         human_only = Field(
             name="human_only",
             label="Detect Humans Only",
-            type="checkbox",
+            type="boolean",
             required=False,
-            defaultValue=True,
             description="Filter detections to show only humans/persons",
         )
         
@@ -144,7 +143,10 @@ class YOLODetectionProcessor(ContextAwareExtensionProcessor):
         image_url = self.get_input_by_name("image_url")
         model_name = self.get_input_by_name("model", "yolov8n.pt")
         confidence = float(self.get_input_by_name("confidence", "0.5"))
-        human_only = self.get_input_by_name("human_only", True)
+        
+        # Handle boolean input properly
+        human_only_input = self.get_input_by_name("human_only", "true")
+        human_only = str(human_only_input).lower() in ['true', '1', 'yes', 'on']
         
         if not image_url:
             raise Exception("Image URL is required")
@@ -162,20 +164,21 @@ class YOLODetectionProcessor(ContextAwareExtensionProcessor):
             # Run detection
             results = self.model(image, conf=confidence)
             
+            # Define human-related class names (COCO dataset classes)
+            human_classes = ["person"]
+            
             # Process results
             detections = []
-            human_count = 0
-            
             for result in results:
                 boxes = result.boxes
                 if boxes is not None:
                     for box in boxes:
                         class_name = result.names[int(box.cls[0])]
                         
-                        # Filter for humans only if enabled
-                        if human_only and class_name != "person":
+                        # Filter for humans only if human_only is enabled
+                        if human_only and class_name not in human_classes:
                             continue
-                        
+                            
                         detection = {
                             "class": class_name,
                             "confidence": float(box.conf[0]),
@@ -187,11 +190,10 @@ class YOLODetectionProcessor(ContextAwareExtensionProcessor):
                             }
                         }
                         detections.append(detection)
-                        
-                        if class_name == "person":
-                            human_count += 1
             
-            # Format output
+            # Format output with human-specific information
+            human_count = len([d for d in detections if d["class"] == "person"])
+            
             output = {
                 "detections": detections,
                 "total_objects": len(detections),

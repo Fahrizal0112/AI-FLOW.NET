@@ -237,13 +237,21 @@ class BboxVisualizerProcessor(ContextAwareExtensionProcessor):
             raise Exception(f"Failed to save image to local storage: {str(e)}")
     
     def image_to_base64(self, image: Image.Image) -> str:
-        """Convert PIL Image to base64 string"""
+        """Convert PIL Image to base64 string with proper data URI format"""
         buffer = BytesIO()
-        image.save(buffer, format="PNG")
+        # Use JPEG format to match frontend expectations
+        if image.mode == 'RGBA':
+            # Convert RGBA to RGB for JPEG compatibility
+            rgb_image = Image.new('RGB', image.size, (255, 255, 255))
+            rgb_image.paste(image, mask=image.split()[-1])
+            image = rgb_image
+        
+        image.save(buffer, format="JPEG", quality=95)
         buffer.seek(0)
         image_base64 = base64.b64encode(buffer.getvalue()).decode('utf-8')
-        # Return only the base64 string without data URI prefix for imageBase64 output type
-        return image_base64
+        
+        # Return with proper data URI format for imageBase64 output type
+        return f"data:image/jpeg;base64,{image_base64}"
     
     def process(self):
         image_url = self.get_input_by_name("image_url")

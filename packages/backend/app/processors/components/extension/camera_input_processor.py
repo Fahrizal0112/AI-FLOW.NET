@@ -91,10 +91,13 @@ class CameraInputProcessor(ContextAwareExtensionProcessor):
     # ---------------- Helpers ----------------
 
     def _encode_frame_to_base64(self, frame):
+        """Convert frame to base64 with proper data URI format"""
         ok, buf = cv2.imencode(".jpg", frame, [cv2.IMWRITE_JPEG_QUALITY, self.jpeg_quality])
         if not ok:
             raise Exception("Failed to encode image to JPEG")
-        return base64.b64encode(buf).decode("utf-8")
+        base64_data = base64.b64encode(buf).decode("utf-8")
+        # Return with proper data URI format for imageBase64 output type
+        return f"data:image/jpeg;base64,{base64_data}"
 
     def _stream_loop(self):
         """Background thread untuk streaming mode dengan shared camera"""
@@ -113,10 +116,11 @@ class CameraInputProcessor(ContextAwareExtensionProcessor):
                     jpeg_bytes = self._shared_cam.get_latest_jpeg()
                     
                     if jpeg_bytes is not None:
-                        # Convert JPEG bytes to base64
-                        b64 = base64.b64encode(jpeg_bytes).decode("utf-8")
+                        # Convert JPEG bytes to base64 with data URI format
+                        base64_data = base64.b64encode(jpeg_bytes).decode("utf-8")
+                        b64_with_uri = f"data:image/jpeg;base64,{base64_data}"
                         with self._lock:
-                            self._latest_b64 = b64
+                            self._latest_b64 = b64_with_uri
                         consecutive_failures = 0
                     else:
                         consecutive_failures += 1
@@ -233,7 +237,8 @@ class CameraInputProcessor(ContextAwareExtensionProcessor):
                     time.sleep(0.2)
                     jpeg_bytes = self._shared_cam.get_latest_jpeg()
                     if jpeg_bytes:
-                        seed_b64 = base64.b64encode(jpeg_bytes).decode("utf-8")
+                        base64_data = base64.b64encode(jpeg_bytes).decode("utf-8")
+                        seed_b64 = f"data:image/jpeg;base64,{base64_data}"
                         with self._lock:
                             self._latest_b64 = seed_b64
                         return [seed_b64]
@@ -251,7 +256,8 @@ class CameraInputProcessor(ContextAwareExtensionProcessor):
                     while time.time() < deadline:
                         jpeg_bytes = self._shared_cam.get_latest_jpeg()
                         if jpeg_bytes:
-                            b64 = base64.b64encode(jpeg_bytes).decode("utf-8")
+                            base64_data = base64.b64encode(jpeg_bytes).decode("utf-8")
+                            b64 = f"data:image/jpeg;base64,{base64_data}"
                             logging.info("[CameraInput] Single-shot capture successful")
                             return [b64]
                         time.sleep(0.05)
@@ -272,7 +278,7 @@ class CameraInputProcessor(ContextAwareExtensionProcessor):
 
     def get_node_config(self):
         return NodeConfig(
-            name="Camera Input (Streaming)",
+            name="Camera Input",
             description="Capture images from camera with streaming support",
             fields=[
                 Field(name="camera_index", label="📹 Camera Device Index", type="inputInt",
@@ -305,11 +311,12 @@ class CameraInputProcessor(ContextAwareExtensionProcessor):
                       required=False, defaultValue=1500,
                       description="Max wait time for first frame in streaming mode."),
                 Field(name="output_type", label="📤 Output Format Type", type="select",
-                      required=False, defaultValue="videoStream",
+                      required=False, defaultValue="imageBase64",
                       options=[{"label": "🎥 Live Video Stream (MJPEG)", "value": "videoStream"},
                                {"label": "🖼️ Static Base64 Image", "value": "imageBase64"}],
                       description="Choose between live video stream or base64 image output."),
             ],
-            # Set outputType based on the output_type configuration
-            outputType="videoStream" if self.output_type == "videoStream" else "imageBase64"
+            # Use imageBase64 as default to avoid the black screen issue
+            outputType="imageBase64",
+            section="input"
         )

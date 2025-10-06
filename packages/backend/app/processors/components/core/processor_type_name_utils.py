@@ -33,3 +33,4 @@ class ProcessorType(Enum):
     STABILITYAI = "stabilityai-generic-processor"
     CLAUDE = "claude-anthropic-processor"
     REPLACE_TEXT = "replace-text"
+    YOLO_DETECTION = "yolo-detection-processor"

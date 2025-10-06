@@ -41,12 +41,33 @@ export const fieldHasHandle = (fieldType: FieldType): boolean => {
 };
 
 export const loadExtensions = async () => {
-  const extensions = await withCache(getNodeExtensions);
-  extensions.forEach((extension: NodeConfig) => {
-    const key = extension.processorType;
-    if (!key) return;
-    if (key in nodeConfigs) return;
+  console.log("🔄 Loading extensions...");
+  try {
+    const extensions = await withCache(getNodeExtensions);
+    console.log("📦 Extensions received:", extensions);
+    console.log("📦 Number of extensions:", extensions.length);
+    
+    extensions.forEach((extension: NodeConfig) => {
+      const key = extension.processorType;
+      console.log(`🔍 Processing extension: ${extension.nodeName} (${key})`);
+      
+      if (!key) {
+        console.warn("⚠️ Extension missing processorType:", extension);
+        return;
+      }
+      
+      if (key in nodeConfigs) {
+        console.log(`⚠️ Extension already exists: ${key}`);
+        return;
+      }
 
-    nodeConfigs[key] = extension;
-  });
+      nodeConfigs[key] = extension;
+      console.log(`✅ Added extension: ${extension.nodeName} (${key})`);
+    });
+    
+    console.log("📋 Final nodeConfigs keys:", Object.keys(nodeConfigs));
+    console.log("🎯 YOLO extension in nodeConfigs:", nodeConfigs["yolo-detection-processor"]);
+  } catch (error) {
+    console.error("❌ Error loading extensions:", error);
+  }
 };
